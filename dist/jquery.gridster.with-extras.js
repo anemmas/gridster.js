@@ -1,6 +1,6 @@
-/*! gridster.js - v0.7.0 - 2016-02-26
+/*! gridster.js - v0.8.0 - 2017-01-26
 * https://dsmorse.github.io/gridster.js/
-* Copyright (c) 2016 ducksboard; Licensed MIT */
+* Copyright (c) 2017 ducksboard; Licensed MIT */
 
 ;(function(root, factory) {
 	'use strict';
@@ -1767,22 +1767,24 @@
 
 		this.update_widget_dimensions($widget, new_wgd);
 
-		if (empty_cols.length) {
-			var cols_to_remove_holes = [
-				empty_cols[0], new_wgd.row,
-				empty_cols[empty_cols.length - 1] - empty_cols[0] + 1,
-				Math.min(old_size_y, new_wgd.size_y),
-				$widget
-			];
+    if (this.options.shift_widgets_up) {
+			if (empty_cols.length) {
+				var cols_to_remove_holes = [
+					empty_cols[0], new_wgd.row,
+					empty_cols[empty_cols.length - 1] - empty_cols[0] + 1,
+					Math.min(old_size_y, new_wgd.size_y),
+					$widget
+				];
 
-			this.remove_empty_cells.apply(this, cols_to_remove_holes);
-		}
+				this.remove_empty_cells.apply(this, cols_to_remove_holes);
+			}
 
-		if (empty_rows.length) {
-			var rows_to_remove_holes = [
-				new_wgd.col, new_wgd.row, new_wgd.size_x, new_wgd.size_y, $widget
-			];
-			this.remove_empty_cells.apply(this, rows_to_remove_holes);
+			if (empty_rows.length) {
+				var rows_to_remove_holes = [
+					new_wgd.col, new_wgd.row, new_wgd.size_x, new_wgd.size_y, $widget
+				];
+				this.remove_empty_cells.apply(this, rows_to_remove_holes);
+			}
 		}
 
 		this.move_widget_up($widget);
@@ -2435,23 +2437,23 @@
 		this.$changed = this.$changed.add(this.$player);
 
 	    //If widget has new position, clean previous grid
-		if (this.placeholder_grid_data.el.coords().grid.col !== this.placeholder_grid_data.col ||
-            this.placeholder_grid_data.el.coords().grid.row !== this.placeholder_grid_data.row) {
-		    this.update_widget_position(this.placeholder_grid_data.el.coords().grid, false);
+        var grid = this.placeholder_grid_data.el.coords().grid;
+        if (grid.col !== this.placeholder_grid_data.col || grid.row !== this.placeholder_grid_data.row) {
+            this.update_widget_position(grid, false);
 
-		    // move the cells down if there is an overlap and we are in static mode
-		    if (this.options.collision.wait_for_mouseup) {
-		        this.for_each_cell_occupied(this.placeholder_grid_data, function (tcol, trow) {
-		            if (this.is_widget(tcol, trow)) {
-		                // get number of cells to move
-		                var destinyRow = this.placeholder_grid_data.row + this.placeholder_grid_data.size_y;
-		                var currentOverlappedRow = parseInt(this.gridmap[tcol][trow][0].getAttribute('data-row'));
-		                var cellsToMove = destinyRow - currentOverlappedRow;
-		                this.move_widget_down(this.is_widget(tcol, trow), cellsToMove);
-		            }
-		        });
-		    }
-		}
+            // move the cells down if there is an overlap and we are in static mode
+            if (this.options.collision.wait_for_mouseup) {
+                this.for_each_cell_occupied(this.placeholder_grid_data, function (tcol, trow) {
+                    if (this.is_widget(tcol, trow)) {
+                        // get number of cells to move
+                        var destinyRow = this.placeholder_grid_data.row + this.placeholder_grid_data.size_y;
+                        var currentOverlappedRow = parseInt(this.gridmap[tcol][trow][0].getAttribute('data-row'));
+                        var cellsToMove = destinyRow - currentOverlappedRow;
+                        this.move_widget_down(this.is_widget(tcol, trow), cellsToMove);
+                    }
+                });
+            }
+        }
 
 		this.cells_occupied_by_player = this.get_cells_occupied(this.placeholder_grid_data);
 
@@ -3298,6 +3300,11 @@
 	 */
 	fn.is_occupied = function (col, row) {
 		if (!this.gridmap[col]) {
+			return false;
+		}
+
+		// Consider player cell as not occupied (i.e. awailable for swap) if it is occupied by player
+		if (this.is_player(col, row)) {
 			return false;
 		}
 
